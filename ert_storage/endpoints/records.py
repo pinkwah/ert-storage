@@ -94,7 +94,17 @@ async def post_ensemble_record(
     if record_type is ds.RecordType.file:
         pass
     elif record_type == ds.RecordType.float_vector:
-        content = [float(x) for x in json.loads(await request.body())]
+        try:
+            content = [float(x) for x in json.loads(await request.body())]
+        except ValueError:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' needs to contain numbers only!",
+                    "name": name,
+                    "ensemble_id": ensemble_id,
+                },
+            )
     elif record_type == ds.RecordType.parameters:
         pass
 
