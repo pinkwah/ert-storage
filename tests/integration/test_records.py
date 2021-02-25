@@ -70,7 +70,7 @@ def test_float_vector(client):
                 data=data,
                 headers={"RecordType": "float_vector"},
             )
-            failed = resp.status_code != 200
+            failed = resp.status_code == 404
         except Exception as exc:
             failed = True
         if should_succeed and failed:
@@ -79,6 +79,12 @@ def test_float_vector(client):
             raise AssertionError(
                 f"Posting '{data}' to record '{name}' was expected to fail, but it succeeded"
             )
+        elif not should_succeed and failed:
+            print(resp.json())
+            assert "detail" in resp.json()
+            assert resp.json()["detail"]["ensemble_id"] == ensemble_id
+            assert resp.json()["detail"]["name"] == name
+            assert resp.json()["detail"]["error"] != ""
 
     # Compare list of records
     resp = client.get(f"/ensembles/{ensemble_id}/records")
@@ -93,6 +99,19 @@ def test_float_vector(client):
         resp = client.get(f"/ensembles/{ensemble_id}/records/{name}")
         assert resp.status_code == 200
         assert resp.json() == json.loads(data)
+
+
+def test_missing_record_exception(client):
+    ensemble_id = _create_ensemble(client)
+
+    record_name = "coeffs_typo"
+    resp = client.get(f"/ensembles/{ensemble_id}/records/{record_name}")
+    assert resp.status_code == 404
+
+    assert "detail" in resp.json()
+    assert resp.json()["detail"]["ensemble_id"] == ensemble_id
+    assert resp.json()["detail"]["name"] == "coeffs_typo"
+    assert resp.json()["detail"]["error"] != ""
 
 
 def _create_ensemble(client):
