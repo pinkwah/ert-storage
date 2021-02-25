@@ -1,7 +1,7 @@
 import json
 from enum import Enum
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request, HTTPException
 from sqlalchemy.orm.exc import NoResultFound
 from ert_storage.database import Session, get_db
 from ert_storage import database_schema as ds, json_schema as js
@@ -67,8 +67,9 @@ async def post_ensemble_record(
         .count()
         > 0
     ):
-        raise RuntimeError(
-            f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' already exists"
+        raise HTTPException(
+            status_code=404,
+            detail=f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' already exists",
         )
 
     # Check that the ensemble exists and is valid
