@@ -32,11 +32,17 @@ async def list_records(*, db: Session = Depends(get_db), ensemble_id: int) -> Li
 async def get_ensemble_record(
     *, db: Session = Depends(get_db), ensemble_id: int, name: str
 ) -> Any:
-    bundle = (
-        db.query(ds.Record)
-        .filter_by(ensemble_id=ensemble_id, name=name, realization_index=None)
-        .one()
-    )
+    try:
+        bundle = (
+            db.query(ds.Record)
+            .filter_by(ensemble_id=ensemble_id, name=name, realization_index=None)
+            .one()
+        )
+    except NoResultFound:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' not found!",
+        )
 
     type_ = bundle.record_type
     if type_ == ds.RecordType.parameters:
