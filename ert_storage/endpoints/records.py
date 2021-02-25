@@ -41,7 +41,11 @@ async def get_ensemble_record(
     except NoResultFound:
         raise HTTPException(
             status_code=404,
-            detail=f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' not found!",
+            detail={
+                "error": f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' not found!",
+                "name": name,
+                "ensemble_id": ensemble_id,
+            },
         )
 
     type_ = bundle.record_type
@@ -75,7 +79,11 @@ async def post_ensemble_record(
     ):
         raise HTTPException(
             status_code=404,
-            detail=f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' already exists",
+            detail={
+                "error": f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' already exists",
+                "name": name,
+                "ensemble_id": ensemble_id,
+            },
         )
 
     # Check that the ensemble exists and is valid
@@ -118,11 +126,21 @@ async def get_realization_record(
             .one()
         )
     except NoResultFound:
-        bundle = (
-            db.query(ds.Record)
-            .filter_by(ensemble_id=ensemble_id, name=name, realization_index=None)
-            .one()
-        )
+        try:
+            bundle = (
+                db.query(ds.Record)
+                .filter_by(ensemble_id=ensemble_id, name=name, realization_index=None)
+                .one()
+            )
+        except NoResultFound:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": f"Ensemble-wide record '{name}' for ensemble '{ensemble_id}' not found!",
+                    "name": name,
+                    "ensemble_id": ensemble_id,
+                },
+            )
 
     type_ = bundle.record_type
     if type_ == ds.RecordType.parameters:
