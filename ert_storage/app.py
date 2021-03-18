@@ -1,4 +1,4 @@
-import json
+import orjson
 from typing import Any
 from fastapi import FastAPI, Request, status
 from fastapi.responses import Response, RedirectResponse
@@ -14,7 +14,7 @@ class JSONResponse(Response):
     media_type = "application/json"
 
     def render(self, content: Any) -> bytes:
-        return json.dumps(
+        return orjson.dumps(
             content,
             ensure_ascii=False,
             allow_nan=True,

@@ -40,6 +40,7 @@ setup(
         "azure-storage-blob",
         "fastapi",
         "numpy",
+        "orjson",
         "pydantic",
         "python-multipart",
         "requests",
