@@ -1,8 +1,10 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Body
-from typing import List, Any, Mapping, Optional
+from typing import List, Any, Mapping, Optional, cast
+from sqlalchemy import Column
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql import select
 from ert_storage.database import Session, get_db
 from ert_storage import database_schema as ds, json_schema as js
 
@@ -53,7 +55,7 @@ def get_observations(
 def get_observations_with_transformation(
     *, db: Session = Depends(get_db), ensemble_id: UUID
 ) -> List[js.ObservationOut]:
-    ens = db.query(ds.Ensemble).filter_by(id=ensemble_id).one()
+    ens = db.scalars(select(ds.Ensemble).where(ds.Ensemble.id == ensemble_id)).one()
     experiment = ens.experiment
     update = ens.parent
     transformations = (
@@ -93,7 +95,8 @@ async def patch_observation_userdata(
     Update userdata json
     """
     obs = db.query(ds.Observation).filter_by(id=obs_id).one()
-    obs.userdata.update(body)
+    if isinstance(obs.userdata, dict):
+        obs.userdata.update(body)
     flag_modified(obs, "userdata")
     db.commit()
 
@@ -103,7 +106,7 @@ async def get_observation_userdata(
     *,
     db: Session = Depends(get_db),
     obs_id: UUID,
-) -> Mapping[str, Any]:
+) -> Any:
     """
     Get userdata json
     """
@@ -118,7 +121,7 @@ def _observation_from_db(
     if transformations is not None and obs.name in transformations:
         transformation = js.ObservationTransformationOut(
             id=transformations[obs.name].id,
-            name=obs.name,
+            name=cast(str, obs.name),
             observation_id=obs.id,
             scale=transformations[obs.name].scale_list,
             active=transformations[obs.name].active_list,

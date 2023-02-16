@@ -4,8 +4,7 @@ from typing import Any
 from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.sql import text
 
 from ert_storage.security import security
@@ -32,14 +31,14 @@ if IS_SQLITE:
     engine = create_engine(URI_RDBMS, connect_args={"check_same_thread": False})
 else:
     engine = create_engine(URI_RDBMS, pool_size=50, max_overflow=100)
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 async def get_db(*, _: None = Depends(security)) -> Any:
-    db = Session()
+    db = Session(engine)
 
     # Make PostgreSQL return float8 columns with highest precision. If we don't
     # do this, we may lose up to 3 of the least significant digits.
@@ -70,3 +69,11 @@ if HAS_AZURE_BLOB_STORAGE:
             await azure_blob_container.get_container_properties()
         except ResourceNotFoundError:
             await azure_blob_container.create_container()
+
+else:
+
+    async def create_container_if_not_exist() -> None:
+        ...
+
+
+__all__ = ["Base", "Session", "get_db", "create_container_if_not_exist"]

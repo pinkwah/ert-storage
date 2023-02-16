@@ -2,7 +2,7 @@ from ert_storage.database_schema.record import F64Matrix
 import numpy as np
 import pandas as pd
 from uuid import UUID
-from typing import Any, Optional, List
+from typing import Any, Dict, Optional, List
 import sqlalchemy as sa
 from fastapi.responses import Response
 from fastapi import APIRouter, Depends, status
@@ -56,13 +56,14 @@ async def get_response_misfits(
         responses = response_query.all()
 
     observation_df = None
-    response_dict = {}
+    response_dict: Dict[int, pd.DataFrame] = {}
     for response in responses:
         data_df = pd.DataFrame(response.f64_matrix.content)
         labels = response.f64_matrix.labels
         if labels is not None:
             data_df.columns = labels[0]
             data_df.index = labels[1]
+        assert response.realization_index is not None
         response_dict[response.realization_index] = data_df
         if observation_df is None:
             # currently we expect only a single observation object, while
@@ -71,6 +72,8 @@ async def get_response_misfits(
             observation_df = pd.DataFrame(
                 data={"values": obs.values, "errors": obs.errors}, index=obs.x_axis
             )
+    if observation_df is None:
+        observation_df = pd.DataFrame()
 
     try:
         result_df = calculate_misfits_from_pandas(

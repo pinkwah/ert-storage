@@ -14,7 +14,6 @@ router = APIRouter(tags=["ensemble"])
 def post_ensemble(
     *, db: Session = Depends(get_db), ens_in: js.EnsembleIn, experiment_id: UUID
 ) -> ds.Ensemble:
-
     experiment = db.query(ds.Experiment).filter_by(id=experiment_id).one()
     active_reals = (
         ens_in.active_realizations
@@ -81,7 +80,8 @@ async def patch_ensemble_userdata(
     Update userdata json
     """
     ensemble = db.query(ds.Ensemble).filter_by(id=ensemble_id).one()
-    ensemble.userdata.update(body)
+    if isinstance(ensemble.userdata, dict):
+        ensemble.userdata.update(body)
     flag_modified(ensemble, "userdata")
     db.commit()
 
@@ -91,7 +91,7 @@ async def get_ensemble_userdata(
     *,
     db: Session = Depends(get_db),
     ensemble_id: UUID,
-) -> Mapping[str, Any]:
+) -> Any:
     """
     Get userdata json
     """

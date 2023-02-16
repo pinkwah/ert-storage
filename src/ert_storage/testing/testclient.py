@@ -1,16 +1,15 @@
 import os
 from contextlib import contextmanager
-from typing import Any, AsyncGenerator, Generator, Optional, Tuple, Union
+from typing import Any, AsyncGenerator, Generator, Optional, Tuple
 
-import requests
 from fastapi import Depends
 from sqlalchemy.engine.base import Transaction
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import Session
+from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
-from starlette.testclient import ASGI2App, ASGI3App
 from starlette.testclient import TestClient as StarletteTestClient
+import httpx
+from starlette.types import ASGIApp
 
 from ert_storage.security import security
 
@@ -24,8 +23,8 @@ class _TestClient:
 
     def __init__(
         self,
-        app: Union[ASGI2App, ASGI3App],
-        session: sessionmaker,
+        app: ASGIApp,
+        session: Session,
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
@@ -41,7 +40,7 @@ class _TestClient:
         url: str,
         check_status_code: Optional[int] = 200,
         **kwargs: Any,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         resp = self.http_client.get(
             url,
             **kwargs,
@@ -54,7 +53,7 @@ class _TestClient:
         url: str,
         check_status_code: Optional[int] = 200,
         **kwargs: Any,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         resp = self.http_client.post(url, **kwargs)
         self._check(check_status_code, resp)
         return resp
@@ -64,7 +63,7 @@ class _TestClient:
         url: str,
         check_status_code: Optional[int] = 200,
         **kwargs: Any,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         resp = self.http_client.put(
             url,
             **kwargs,
@@ -77,7 +76,7 @@ class _TestClient:
         url: str,
         check_status_code: Optional[int] = 200,
         **kwargs: Any,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         resp = self.http_client.patch(
             url,
             **kwargs,
@@ -90,7 +89,7 @@ class _TestClient:
         url: str,
         check_status_code: Optional[int] = 200,
         **kwargs: Any,
-    ) -> requests.Response:
+    ) -> httpx.Response:
         resp = self.http_client.delete(
             url,
             **kwargs,
@@ -99,7 +98,7 @@ class _TestClient:
         return resp
 
     def _check(
-        self, check_status_code: Optional[int], response: requests.Response
+        self, check_status_code: Optional[int], response: httpx.Response
     ) -> None:
         if (
             not self.raise_on_client_error
@@ -147,17 +146,17 @@ def testclient_factory() -> Generator[_TestClient, None, None]:
         del os.environ[env_key]
 
 
-_TransactionInfo = Tuple[sessionmaker, Transaction, Any]
+_TransactionInfo = Tuple[Session, Transaction, Any]
 
 
-def _override_get_db(session: sessionmaker) -> None:
+def _override_get_db(session: Session) -> None:
     from ert_storage.app import app
     from ert_storage.database import IS_POSTGRES, get_db
 
     async def override_get_db(
         *, _: None = Depends(security)
     ) -> AsyncGenerator[Session, None]:
-        db = session()
+        db = session
 
         # Make PostgreSQL return float8 columns with highest precision. If we don't
         # do this, we may lose up to 3 of the least significant digits.
@@ -191,7 +190,7 @@ def _begin_transaction() -> _TransactionInfo:
 
     connection = engine.connect()
     transaction = connection.begin()
-    session = sessionmaker(autocommit=False, autoflush=False, bind=connection)
+    session = Session(engine)
 
     _override_get_db(session)
 

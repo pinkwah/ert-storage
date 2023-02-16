@@ -67,7 +67,7 @@ def run_alembic(args: List[str]) -> None:
     ]
 
     try:
-        alembic_main(argv=argv, prog="ert-storage alembic")
+        alembic_main(argv=argv, prog="ert-storage alembic")  # type: ignore
     except FileNotFoundError as exc:
         if os.path.basename(exc.filename) == "script.py.mako":
             sys.exit(

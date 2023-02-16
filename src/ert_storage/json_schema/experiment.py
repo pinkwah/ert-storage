@@ -15,7 +15,7 @@ class ExperimentIn(_Experiment):
 class ExperimentOut(_Experiment):
     id: UUID
     ensemble_ids: List[UUID]
-    priors: Mapping[str, dict]
+    priors: Mapping[str, Mapping[str, Any]]
     userdata: Mapping[str, Any]
 
     class Config:

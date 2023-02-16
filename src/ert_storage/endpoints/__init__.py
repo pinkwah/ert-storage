@@ -17,3 +17,5 @@ router.include_router(updates_router)
 router.include_router(misfits_router)
 router.include_router(response_router)
 router.include_router(server_router)
+
+__all__ = ["router"]

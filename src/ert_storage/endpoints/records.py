@@ -4,7 +4,7 @@ import io
 import numpy as np
 import pandas as pd
 from enum import Enum
-from typing import Any, Mapping, Dict, Optional, List, AsyncGenerator
+from typing import Any, Mapping, Dict, Optional, List, AsyncGenerator, Sequence, Union
 import sqlalchemy as sa
 from fastapi import (
     APIRouter,
@@ -337,7 +337,7 @@ async def post_ensemble_record_matrix(
     matrix_obj = ds.F64Matrix(content=content.tolist(), labels=labels)
 
     record.f64_matrix = matrix_obj
-    return _create_record(db, record)
+    return js.RecordOut.from_orm(_create_record(db, record))
 
 
 @router.put("/ensembles/{ensemble_id}/records/{name}/userdata")
@@ -364,7 +364,8 @@ async def patch_record_userdata(
     """
     Update userdata json
     """
-    record.userdata.update(body)
+    if isinstance(record.userdata, dict):
+        record.userdata.update(body)
     flag_modified(record, "userdata")
     db.commit()
 
@@ -375,7 +376,7 @@ async def patch_record_userdata(
 async def get_record_userdata(
     *,
     record: ds.Record = Depends(get_record_by_name),
-) -> Mapping[str, Any]:
+) -> Any:
     """
     Get userdata json
     """
@@ -547,13 +548,15 @@ async def get_ensemble_record(
     return await _get_record_resonse(data_frame, accept)
 
 
-@router.get("/ensembles/{ensemble_id}/records/{name}/labels", response_model=List[str])
+@router.get(
+    "/ensembles/{ensemble_id}/records/{name}/labels", response_model=Sequence[str]
+)
 async def get_record_labels(
     *,
     db: Session = Depends(get_db),
     ensemble_id: UUID,
     name: str,
-) -> List[str]:
+) -> Sequence[str]:
     """
     Get the list of record data labels. If the record is not a group record the list of labels will
     contain only the name of the record
@@ -690,12 +693,11 @@ def _get_record_dataframe(
     if content_is_labeled and label_specified and label not in labels[0]:
         raise exc.UnprocessableError(f"Record label '{label}' not found!")
 
+    matrix_content: Sequence[Sequence[float]] = []
     if realization_index is None or record.realization_index is not None:
         matrix_content = record.f64_matrix.content
     elif record.realization_index is None:
-        matrix_content = record.f64_matrix.content[realization_index]
-    if not isinstance(matrix_content[0], List):
-        matrix_content = [matrix_content]
+        matrix_content = [record.f64_matrix.content[realization_index]]
 
     if content_is_labeled and label_specified:
         lbl_idx = labels[0].index(label)

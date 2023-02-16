@@ -99,7 +99,8 @@ async def patch_experiment_userdata(
     Update userdata json
     """
     experiment = db.query(ds.Experiment).filter_by(id=experiment_id).one()
-    experiment.userdata.update(body)
+    if isinstance(experiment.userdata, dict):
+        experiment.userdata.update(body)
     flag_modified(experiment, "userdata")
     db.commit()
 
@@ -109,7 +110,7 @@ async def get_experiment_userdata(
     *,
     db: Session = Depends(get_db),
     experiment_id: UUID,
-) -> Mapping[str, Any]:
+) -> Any:
     """
     Get userdata json
     """

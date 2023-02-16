@@ -6,3 +6,21 @@ from .observation import Observation, ObservationTransformation
 from .update import Update
 from .prior import Prior, PriorFunction
 from ert_storage.database import Base
+
+__all__ = [
+    "RecordInfo",
+    "RecordType",
+    "RecordClass",
+    "Record",
+    "F64Matrix",
+    "File",
+    "FileBlock",
+    "Ensemble",
+    "Experiment",
+    "Observation",
+    "ObservationTransformation",
+    "Update",
+    "Prior",
+    "PriorFunction",
+    "Base",
+]

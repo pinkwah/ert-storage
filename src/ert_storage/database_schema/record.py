@@ -1,44 +1,51 @@
-from typing import Any
-from uuid import uuid4
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence
+from uuid import uuid4, UUID
 
 import sqlalchemy as sa
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ert_storage.ext.sqlalchemy_arrays import FloatArray
-from ert_storage.ext.uuid import UUID
 from ert_storage.database import Base
 
 from ._userdata_field import UserdataField
 from .observation import observation_record_association
 from .record_info import RecordType, RecordClass
 
+if TYPE_CHECKING:
+    from .ensemble import Ensemble
+    from .observation import Observation
+    from .record_info import RecordInfo
 
-class Record(Base, UserdataField):
+
+class Record(UserdataField, Base):
     __tablename__ = "record"
 
     pk = sa.Column(sa.Integer, primary_key=True)
-    id = sa.Column(UUID, unique=True, default=uuid4, nullable=False)
+    id: Mapped[UUID] = mapped_column(unique=True, default=uuid4)
     time_created = sa.Column(sa.DateTime, server_default=func.now())
     time_updated = sa.Column(
         sa.DateTime, server_default=func.now(), onupdate=func.now()
     )
 
-    realization_index = sa.Column(sa.Integer, nullable=True)
+    realization_index: Mapped[Optional[int]]
 
     record_info_pk = sa.Column(
         sa.Integer, sa.ForeignKey("record_info.pk"), nullable=True
     )
-    record_info = relationship("RecordInfo", back_populates="records")
+    record_info: Mapped[RecordInfo] = relationship(
+        "RecordInfo", back_populates="records"
+    )
 
     file_pk = sa.Column(sa.Integer, sa.ForeignKey("file.pk"))
     f64_matrix_pk = sa.Column(sa.Integer, sa.ForeignKey("f64_matrix.pk"))
 
-    file = relationship("File", cascade="all")
-    f64_matrix = relationship("F64Matrix", cascade="all")
+    file: Mapped[File] = relationship("File", cascade="all")
+    f64_matrix: Mapped[F64Matrix] = relationship("F64Matrix", cascade="all")
 
-    observations = relationship(
+    observations: Mapped[List[Observation]] = relationship(
         "Observation",
         secondary=observation_record_association,
         back_populates="records",
@@ -57,7 +64,7 @@ class Record(Base, UserdataField):
             )
 
     @property
-    def ensemble_pk(self) -> int:
+    def ensemble_pk(self) -> sa.Column[int]:
         return self.record_info.ensemble_pk
 
     @property
@@ -80,17 +87,17 @@ class Record(Base, UserdataField):
 class File(Base):
     __tablename__ = "file"
 
-    pk = sa.Column(sa.Integer, primary_key=True)
-    id = sa.Column(UUID, unique=True, default=uuid4, nullable=False)
+    pk: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(unique=True, default=uuid4)
     time_created = sa.Column(sa.DateTime, server_default=func.now())
     time_updated = sa.Column(
         sa.DateTime, server_default=func.now(), onupdate=func.now()
     )
 
-    filename = sa.Column(sa.String, nullable=False)
-    mimetype = sa.Column(sa.String, nullable=False)
+    filename: Mapped[str]
+    mimetype: Mapped[str]
 
-    content = sa.Column(sa.LargeBinary)
+    content: Mapped[bytes] = mapped_column(sa.LargeBinary)
     az_container = sa.Column(sa.String)
     az_blob = sa.Column(sa.String)
 
@@ -99,28 +106,28 @@ class F64Matrix(Base):
     __tablename__ = "f64_matrix"
 
     pk = sa.Column(sa.Integer, primary_key=True)
-    id = sa.Column(UUID, unique=True, default=uuid4, nullable=False)
+    id: Mapped[UUID] = mapped_column(unique=True, default=uuid4)
     time_created = sa.Column(sa.DateTime, server_default=func.now())
     time_updated = sa.Column(
         sa.DateTime, server_default=func.now(), onupdate=func.now()
     )
-    content = sa.Column(FloatArray, nullable=False)
-    labels = sa.Column(sa.PickleType)
+    content: Mapped[Sequence[Sequence[float]]] = mapped_column(FloatArray)
+    labels: Mapped[Sequence[Sequence[str]]] = mapped_column(sa.PickleType)
 
 
 class FileBlock(Base):
     __tablename__ = "file_block"
 
-    pk = sa.Column(sa.Integer, primary_key=True)
-    id = sa.Column(UUID, unique=True, default=uuid4, nullable=False)
+    pk: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(unique=True, default=uuid4)
     time_created = sa.Column(sa.DateTime, server_default=func.now())
     time_updated = sa.Column(
         sa.DateTime, server_default=func.now(), onupdate=func.now()
     )
-    block_id = sa.Column(sa.String, nullable=False)
-    block_index = sa.Column(sa.Integer, nullable=False)
-    record_name = sa.Column(sa.String, nullable=False)
-    realization_index = sa.Column(sa.Integer, nullable=True)
+    block_id: Mapped[str]
+    block_index: Mapped[int]
+    record_name: Mapped[str]
+    realization_index: Mapped[Optional[int]]
     ensemble_pk = sa.Column(sa.Integer, sa.ForeignKey("ensemble.pk"), nullable=True)
-    ensemble = relationship("Ensemble")
-    content = sa.Column(sa.LargeBinary, nullable=True)
+    ensemble: Mapped[Ensemble] = relationship("Ensemble")
+    content: Mapped[bytes] = mapped_column(sa.LargeBinary(), nullable=True)

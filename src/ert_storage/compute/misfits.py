@@ -1,15 +1,22 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
-from uuid import UUID
-from typing import Any, Mapping, List, Optional
+from typing import Any, Mapping, TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 
 def _calculate_misfit(
-    obs_value: np.ndarray, response_value: np.ndarray, obs_std: np.ndarray
-) -> List[float]:
+    obs_value: npt.NDArray[Any],
+    response_value: npt.NDArray[Any],
+    obs_std: npt.NDArray[Any],
+) -> Any:
     difference = response_value - obs_value
     misfit = (difference / obs_std) ** 2
-    return (misfit * np.sign(difference)).tolist()
+    return misfit * np.sign(difference)
 
 
 def calculate_misfits_from_pandas(

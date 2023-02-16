@@ -1,13 +1,12 @@
 from uuid import UUID as SystemUUID
-from typing import Any, Optional
+from typing import Any
 
-import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.engine import Dialect
 from sqlalchemy.types import TypeDecorator, CHAR
 
 
-class UUID(TypeDecorator):
+class UUID(TypeDecorator[CHAR]):
     """Platform-independent UUID type.
 
     Uses PostgreSQL's UUID type, otherwise uses

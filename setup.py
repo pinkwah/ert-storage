@@ -43,8 +43,9 @@ setup(
             "black",
             "pytest",
             "pytest-asyncio",
-            "mypy==0.981",
+            "mypy",
             "types-requests",
+            "sqlalchemy[mypy]"
         ],
         "postgres": [
             "psycopg2",
@@ -56,7 +57,7 @@ setup(
     },
     install_requires=[
         "alembic",
-        "fastapi<0.89",
+        "fastapi",
         "httpx",
         "numpy",
         "pandas",
@@ -64,7 +65,7 @@ setup(
         "pydantic",
         "python-multipart",
         "requests",
-        "sqlalchemy>=1.4",
-        "uvicorn >= 0.17.0",
+        "sqlalchemy>=2.0",
+        "uvicorn",
     ],
 )

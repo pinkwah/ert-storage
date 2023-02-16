@@ -1,8 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, List, Optional, Sequence
+
 from ert_storage.database import Base
 import sqlalchemy as sa
-from sqlalchemy.orm import relationship
-from uuid import uuid4
-from ert_storage.ext.uuid import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from uuid import uuid4, UUID
+
+if TYPE_CHECKING:
+    from .ensemble import Ensemble
+    from .observation import ObservationTransformation
 
 
 class Update(Base):
@@ -11,28 +17,28 @@ class Update(Base):
         sa.UniqueConstraint("ensemble_result_pk", name="uq_update_result_pk"),
     )
 
-    pk = sa.Column(sa.Integer, primary_key=True)
-    id = sa.Column(UUID, unique=True, default=uuid4, nullable=False)
-    algorithm = sa.Column(sa.String, nullable=False)
-    ensemble_reference_pk = sa.Column(
-        sa.Integer, sa.ForeignKey("ensemble.pk"), nullable=True
+    pk: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(unique=True, default=uuid4)
+    algorithm: Mapped[str]
+    ensemble_reference_pk: Mapped[Optional[int]] = mapped_column(
+        sa.ForeignKey("ensemble.pk")
     )
-    ensemble_result_pk = sa.Column(
-        sa.Integer, sa.ForeignKey("ensemble.pk"), nullable=True
+    ensemble_result_pk: Mapped[Optional[int]] = mapped_column(
+        sa.ForeignKey("ensemble.pk")
     )
 
-    ensemble_reference = relationship(
+    ensemble_reference: Mapped[Ensemble] = relationship(
         "Ensemble",
         foreign_keys=[ensemble_reference_pk],
         back_populates="children",
     )
-    ensemble_result = relationship(
+    ensemble_result: Mapped[Ensemble] = relationship(
         "Ensemble",
         foreign_keys=[ensemble_result_pk],
         uselist=False,
         back_populates="parent",
     )
-    observation_transformations = relationship(
+    observation_transformations: Mapped[List[ObservationTransformation]] = relationship(
         "ObservationTransformation",
         foreign_keys="[ObservationTransformation.update_pk]",
         cascade="all, delete-orphan",
